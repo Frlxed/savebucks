@@ -1,10 +1,10 @@
-# SafeBucks
+# SaveBucks
 
-A calm, dark-mode personal finance dashboard for tracking monthly income and expenses, with savings goals and timelines.
+A responsive personal-finance dashboard with separate workspaces for overview, transactions, insights, savings, and settings. The app is organized as small ES modules so new workspaces can be added independently.
 
 ## Run locally
 
-Because the app uses native JavaScript modules, serve this folder from a local web server rather than opening `index.html` directly. For example:
+Serve the project root (native JavaScript modules need a web server):
 
 ```bash
 python3 -m http.server 8000
@@ -12,25 +12,24 @@ python3 -m http.server 8000
 
 Then visit <http://localhost:8000>.
 
+## Secure accounts and cloud sync (required for login)
+
+The site uses Supabase Auth and a per-user cloud-data table. GitHub Pages is static hosting, so it cannot securely create or store accounts itself. Connect a Supabase project before enabling account access:
+
+1. Create a Supabase project and enable email/password, Google, and Apple providers under **Authentication → Providers**. Configure each OAuth provider's credentials and redirect URLs in Supabase.
+2. In **Project Settings → API**, copy the Project URL and the public anon key into `CONFIG.url` and `CONFIG.anonKey` in `js/core/auth.js`. The anon key is intended for browser use; never put a service-role key in this repository.
+3. Run `supabase/schema.sql` in the Supabase SQL Editor. Its row-level security policies restrict each signed-in user to their own finance data.
+4. Add your GitHub Pages URL to Supabase's allowed redirect URLs, then deploy. Email confirmation may need to be enabled/configured in Supabase.
+
+Until configured, the login screen explains that setup is needed and does not pretend to create insecure local accounts. Google/Apple buttons use Supabase OAuth once provider setup is complete. Supabase users and finance data sync to their account; offline copies are namespaced per account in this browser.
+
 ## Included
 
-- Set salary, allowance, or other income by month.
-- Log expenses with a description, category, date, quantity, and per-item price.
-- See monthly available balance, totals, recent activity, category spending, and a seven-day spending chart.
-- Create savings goals with a target price, current saved amount, and planned monthly contribution.
-- See goal progress and an estimated time to reach each target; record contributions as you save.
-- Change months and remove transactions or savings goals.
-- Save data privately in this browser using `localStorage`.
+- Collapsible desktop navigation and mobile slide-out menu.
+- Overview with available balance and savings-goal preview, without the income card.
+- Separate transaction and insights workspaces.
+- Savings purchase calculator with monthly savings rate and time-to-goal estimate.
+- Settings for light, dark, or device appearance; username, email, and monthly income.
+- Per-user cloud sync, email/password signup/login, Google and Apple OAuth (after Supabase setup).
 
-## Extend without a rewrite
-
-The app is split into small ES modules:
-
-- `js/app.js` wires the app together.
-- `js/core/store.js` contains state and actions.
-- `js/core/storage.js` handles persistence and schema migrations.
-- `js/features/` contains independent UI features, including savings.
-
-To add a feature, create a module in `js/features/`, export a mount function, and register it from `js/app.js`. Keep persistent data changes in the store and add a migration in `js/core/storage.js` when the saved-data schema needs to change. The dashboard reads from the shared store and redraws when state changes.
-
-All financial data stays in this browser; clearing browser storage will remove it. Currency is currently displayed in USD.
+Currency display is currently USD. Finance data is saved in browser storage and synced to Supabase when configured. Clearing browser storage removes the local copy, but synced data remains in the account.
