@@ -1,6 +1,7 @@
 import { loadState, saveState } from './storage.js';
 
 const monthKey = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const createId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 export function createStore() {
   let state = loadState();
@@ -27,11 +28,28 @@ export function createStore() {
       publish();
     },
     addTransaction(transaction) {
-      state = { ...state, transactions: [{ ...transaction, id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, ...state.transactions] };
+      state = { ...state, transactions: [{ ...transaction, id: createId() }, ...state.transactions] };
       publish();
     },
     deleteTransaction(id) {
       state = { ...state, transactions: state.transactions.filter((item) => item.id !== id) };
+      publish();
+    },
+    addSavingsGoal(goal) {
+      state = { ...state, savingsGoals: [{ ...goal, id: createId() }, ...state.savingsGoals] };
+      publish();
+    },
+    deleteSavingsGoal(id) {
+      state = { ...state, savingsGoals: state.savingsGoals.filter((goal) => goal.id !== id) };
+      publish();
+    },
+    addGoalContribution(id, amount) {
+      state = {
+        ...state,
+        savingsGoals: state.savingsGoals.map((goal) => goal.id === id
+          ? { ...goal, saved: Math.min(Number(goal.target), Number(goal.saved) + amount) }
+          : goal),
+      };
       publish();
     },
     shiftMonth(offset) {

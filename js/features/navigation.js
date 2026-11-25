@@ -1,7 +1,11 @@
-export function mountNavigation() {
-  const links = [...document.querySelectorAll('.nav-link')];
-  links.forEach((link) => link.addEventListener('click', () => {
-    links.forEach((item) => item.classList.remove('active'));
-    link.classList.add('active');
-  }));
+export function mountNavigation({ onWorkspaceChange = () => {} } = {}) {
+  const nav = document.querySelector('.nav-links');
+  nav.addEventListener('click', (event) => {
+    const link = event.target.closest('.nav-link');
+    if (!link || !nav.contains(link)) return;
+
+    event.preventDefault();
+    nav.querySelectorAll('.nav-link').forEach((item) => item.classList.toggle('active', item === link));
+    onWorkspaceChange(link.dataset.workspace || 'overview');
+  });
 }

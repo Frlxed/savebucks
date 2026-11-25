@@ -1,10 +1,11 @@
 const STORAGE_KEY = 'safebucks.data';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 const emptyState = () => ({
   version: CURRENT_VERSION,
   incomeByMonth: {},
   transactions: [],
+  savingsGoals: [],
 });
 
 /**
@@ -35,9 +36,10 @@ export function saveState(state) {
 function migrate(data) {
   if (!data || typeof data !== 'object') return emptyState();
 
-  // Future schema migrations go here, e.g. version 1 -> version 2.
+  // Existing v1 income and transactions are preserved while savings is added.
   const migrated = { ...emptyState(), ...data, version: CURRENT_VERSION };
   migrated.incomeByMonth = migrated.incomeByMonth || {};
   migrated.transactions = Array.isArray(migrated.transactions) ? migrated.transactions : [];
+  migrated.savingsGoals = Array.isArray(migrated.savingsGoals) ? migrated.savingsGoals : [];
   return migrated;
 }
