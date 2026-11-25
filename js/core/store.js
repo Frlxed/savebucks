@@ -26,6 +26,18 @@ export function createStore({ userId = 'local', initialState = null, onChange = 
       state = { ...state, savingsGoals: state.savingsGoals.map((goal) => goal.id === id ? { ...goal, saved: Math.min(Number(goal.target), Number(goal.saved) + amount) } : goal) };
       publish();
     },
+    addRecurringExpense(expense) { state = { ...state, recurringExpenses: [{ ...expense, id: createId() }, ...state.recurringExpenses] }; publish(); },
+    deleteRecurringExpense(id) {
+      state = { ...state, recurringExpenses: state.recurringExpenses.filter((item) => item.id !== id), transactions: state.transactions.filter((item) => item.recurringId !== id) };
+      publish();
+    },
+    addRecurringTransaction(transaction) {
+      if (state.transactions.some((item) => item.recurringId === transaction.recurringId && item.recurringMonth === transaction.recurringMonth)) return false;
+      state = { ...state, transactions: [{ ...transaction, id: createId() }, ...state.transactions] };
+      publish();
+      return true;
+    },
+    setPreference(key, value) { state = { ...state, preferences: { ...(state.preferences || {}), [key]: value } }; publish(); },
     setProfile(profile) { state = { ...state, profile: { ...(state.profile || {}), ...profile } }; publish(); },
     shiftMonth(offset) {
       const [year, month] = selectedMonth.split('-').map(Number);

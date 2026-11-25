@@ -7,10 +7,9 @@ create table if not exists public.user_data (
 
 alter table public.user_data enable row level security;
 
--- A signed-in user can only read and modify their own finance data.
-create policy "Users can read their own SaveBucks data"
-  on public.user_data for select to authenticated using (auth.uid() = user_id);
-create policy "Users can insert their own SaveBucks data"
-  on public.user_data for insert to authenticated with check (auth.uid() = user_id);
-create policy "Users can update their own SaveBucks data"
-  on public.user_data for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users can read their own SaveBucks data" on public.user_data;
+drop policy if exists "Users can insert their own SaveBucks data" on public.user_data;
+drop policy if exists "Users can update their own SaveBucks data" on public.user_data;
+create policy "Users can read their own SaveBucks data" on public.user_data for select to authenticated using (auth.uid() = user_id);
+create policy "Users can insert their own SaveBucks data" on public.user_data for insert to authenticated with check (auth.uid() = user_id);
+create policy "Users can update their own SaveBucks data" on public.user_data for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
