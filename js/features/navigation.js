@@ -1,10 +1,14 @@
 export function mountNavigation({ onWorkspaceChange = () => {} } = {}) {
-  const nav = document.querySelector('.sidebar .nav-links');
-  nav.addEventListener('click', (event) => {
+  const sidebar = document.querySelector('.sidebar');
+  // Settings is in a separate nav group; listen on the sidebar, not only the first nav.
+  sidebar.addEventListener('click', (event) => {
     const link = event.target.closest('.nav-link[data-workspace]');
-    if (!link || !nav.contains(link)) return;
+    if (!link || !sidebar.contains(link)) return;
     event.preventDefault();
-    nav.querySelectorAll('.nav-link').forEach((item) => item.classList.toggle('active', item === link));
+    sidebar.querySelectorAll('.nav-link[data-workspace]').forEach((item) => {
+      item.classList.toggle('active', item === link);
+      item.setAttribute('aria-current', item === link ? 'page' : 'false');
+    });
     onWorkspaceChange(link.dataset.workspace);
     document.body.classList.remove('sidebar-open');
     window.scrollTo({ top: 0, behavior: 'smooth' });
