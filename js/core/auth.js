@@ -65,14 +65,11 @@ export async function writeCloudData(userId, token, payload) {
   });
   if (!response.ok) throw new Error('Could not back up your data to Supabase.');
 }
-// Required by the Settings workspace in js/app.js; keep the auth module importable.
 export async function updateAccount({ email, name }) {
   const session = getSession();
   if (!session?.access_token) throw new Error('Please sign in again to update your account.');
   const response = await fetch(endpoint('user'), {
-    method: 'PUT',
-    headers: headers(session.access_token),
-    body: JSON.stringify({ email, data: { name } }),
+    method: 'PUT', headers: headers(session.access_token), body: JSON.stringify({ email, data: { name } }),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.msg || result.message || 'Could not update your account.');
@@ -112,6 +109,34 @@ export function mountAuth({ onAuthenticated }) {
   confirmLabel.append(confirmInput);
   passwordLabel.after(confirmLabel);
 
+  // Add accessible show/hide controls to both password fields.
+  const eyeClosed = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5 0 9 4.5 10 7a11.8 11.8 0 01-3 4.3M6.2 6.3C3.9 7.8 2.4 10 2 12c1 2.5 5 7 10 7 1.2 0 2.3-.2 3.3-.7"/></svg>';
+  const eyeOpen = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  function addPasswordToggle(input) {
+    const label = input.closest('label');
+    const wrapper = document.createElement('span');
+    wrapper.className = 'auth-password-control';
+    label.insertBefore(wrapper, input);
+    wrapper.append(input);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'auth-password-toggle';
+    toggle.setAttribute('aria-label', 'Show password');
+    toggle.title = 'Show password';
+    toggle.innerHTML = eyeClosed;
+    toggle.addEventListener('click', () => {
+      const reveal = input.type === 'password';
+      input.type = reveal ? 'text' : 'password';
+      toggle.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+      toggle.title = reveal ? 'Hide password' : 'Show password';
+      toggle.innerHTML = reveal ? eyeOpen : eyeClosed;
+      input.focus();
+    });
+    wrapper.append(toggle);
+  }
+  addPasswordToggle(passwordInput);
+  addPasswordToggle(confirmInput);
+
   const passwordHint = document.createElement('span');
   passwordHint.className = 'auth-password-hint';
   passwordHint.textContent = 'At least 8 characters, one uppercase letter and one symbol; no spaces.';
@@ -135,7 +160,7 @@ export function mountAuth({ onAuthenticated }) {
   forgotButton.hidden = true;
   confirmLabel.after(forgotButton);
   const authStyle = document.createElement('style');
-  authStyle.textContent = '.auth-password-hint{display:block;font-size:9px;color:#89929e;line-height:1.45;margin-top:-3px}.auth-forgot{display:block;margin:-3px 0 10px auto;padding:0;border:0;background:none;color:#c4f266;font:inherit;font-size:10px;cursor:pointer}.auth-forgot:hover{text-decoration:underline}.auth-confirm-password input{display:block;width:100%;margin-top:8px;box-sizing:border-box}';
+  authStyle.textContent = '.auth-password-hint{display:block;font-size:9px;color:#89929e;line-height:1.45;margin-top:-3px}.auth-forgot{display:block;margin:-3px 0 10px auto;padding:0;border:0;background:none;color:#c4f266;font:inherit;font-size:10px;cursor:pointer}.auth-forgot:hover{text-decoration:underline}.auth-confirm-password input{display:block;width:100%;margin-top:8px;box-sizing:border-box}.auth-password-control{position:relative;display:block;width:100%}.auth-password-control input{width:100%;box-sizing:border-box;padding-right:42px!important}.auth-password-toggle{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:28px;height:28px;padding:5px;border:0;border-radius:5px;background:transparent;color:#9aa5b2;display:grid;place-items:center;cursor:pointer}.auth-password-toggle:hover{color:#c4f266;background:rgba(255,255,255,.05)}.auth-password-toggle:focus-visible{outline:2px solid #c4f266;outline-offset:1px}.auth-password-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}';
   document.head.append(authStyle);
 
   document.querySelectorAll('.brand').forEach((brand) => {
