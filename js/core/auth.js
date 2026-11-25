@@ -1,6 +1,6 @@
 import { CURRENCIES } from './currency.js';
 
-const CONFIG = { url: '', anonKey: '' };
+const CONFIG = { url: 'https://ahxlclpxwkxdnoarlqsx.supabase.co', anonKey: 'PASTE_YOUR_ANON_OR_PUBLISHABLE_KEY_HERE' };
 export const isAuthConfigured = () => Boolean(CONFIG.url && CONFIG.anonKey);
 const endpoint = (path) => `${CONFIG.url.replace(/\/$/, '')}/auth/v1/${path}`;
 const headers = (token) => ({ 'Content-Type': 'application/json', apikey: CONFIG.anonKey, ...(token ? { Authorization: `Bearer ${token}` } : {}) });
