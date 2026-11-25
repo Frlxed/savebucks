@@ -41,7 +41,9 @@ export async function authRequest(path, body, remember = true) {
 export async function signOut() {
   const session = getSession();
   if (session?.access_token && isAuthConfigured()) await fetch(endpoint('logout'), { method: 'POST', headers: headers(session.access_token) }).catch(() => {});
-  localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(REMEMBER_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(REMEMBER_KEY);
 }
 export function startOAuth(provider, remember = true) {
   if (!isAuthConfigured()) throw new Error('Add your Supabase URL and anon key in js/core/auth.js first.');
@@ -54,6 +56,29 @@ export async function readCloudData(userId, token) {
   if (!response.ok) throw new Error('Could not load cloud data. Verify supabase/schema.sql was applied and row-level security is enabled.');
   const rows = await response.json();
   return rows[0]?.payload ?? null;
+}
+export async function writeCloudData(userId, token, payload) {
+  const response = await fetch(`${CONFIG.url.replace(/\/$/, '')}/rest/v1/user_data?on_conflict=user_id`, {
+    method: 'POST',
+    headers: { ...headers(token), Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: userId, payload, updated_at: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error('Could not back up your data to Supabase.');
+}
+// Required by the Settings workspace in js/app.js; keep the auth module importable.
+export async function updateAccount({ email, name }) {
+  const session = getSession();
+  if (!session?.access_token) throw new Error('Please sign in again to update your account.');
+  const response = await fetch(endpoint('user'), {
+    method: 'PUT',
+    headers: headers(session.access_token),
+    body: JSON.stringify({ email, data: { name } }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.msg || result.message || 'Could not update your account.');
+  const updated = { ...session, user: result };
+  saveSession(updated, localStorage.getItem(REMEMBER_KEY) !== 'false');
+  return updated;
 }
 
 function validPassword(password) {
@@ -72,7 +97,6 @@ export function mountAuth({ onAuthenticated }) {
   const rememberInput = form.elements.remember;
   const passwordInput = form.elements.password;
   const passwordLabel = passwordInput.closest('label');
-  // New visitors start in create-account mode, matching the first screen in index.html.
   let isSignup = true;
   let isRecovery = false;
 
@@ -86,7 +110,6 @@ export function mountAuth({ onAuthenticated }) {
   confirmInput.required = true;
   confirmInput.placeholder = 'Re-enter your password';
   confirmLabel.append(confirmInput);
-  // Insert immediately after password so it is present on the very first page load.
   passwordLabel.after(confirmLabel);
 
   const passwordHint = document.createElement('span');
@@ -115,13 +138,10 @@ export function mountAuth({ onAuthenticated }) {
   authStyle.textContent = '.auth-password-hint{display:block;font-size:9px;color:#89929e;line-height:1.45;margin-top:-3px}.auth-forgot{display:block;margin:-3px 0 10px auto;padding:0;border:0;background:none;color:#c4f266;font:inherit;font-size:10px;cursor:pointer}.auth-forgot:hover{text-decoration:underline}.auth-confirm-password input{display:block;width:100%;margin-top:8px;box-sizing:border-box}';
   document.head.append(authStyle);
 
-  const setBrand = () => {
-    document.querySelectorAll('.brand').forEach((brand) => {
-      const word = brand.querySelector(':scope > span:last-child');
-      if (word) word.innerHTML = 'Save<span class="brand-light">Bucks</span>';
-    });
-  };
-  setBrand();
+  document.querySelectorAll('.brand').forEach((brand) => {
+    const word = brand.querySelector(':scope > span:last-child');
+    if (word) word.innerHTML = 'Save<span class="brand-light">Bucks</span>';
+  });
 
   const showApp = (session, cloudData) => { screen.hidden = true; shell.hidden = false; onAuthenticated(session, cloudData); };
   async function completeLogin(session) {
@@ -136,8 +156,11 @@ export function mountAuth({ onAuthenticated }) {
       catch (cloudError) { console.warn('Cloud backup is unavailable; using local data.', cloudError); }
       showApp(verifiedSession, cloudData);
     } catch (issue) {
-      localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY);
-      screen.hidden = false; shell.hidden = true; error.textContent = issue.message;
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+      screen.hidden = false;
+      shell.hidden = true;
+      error.textContent = issue.message;
     }
   }
 
@@ -146,8 +169,7 @@ export function mountAuth({ onAuthenticated }) {
   const oauthToken = params.get('access_token');
   if (oauthToken) {
     const remember = recoveryLink || sessionStorage.getItem('savebucks.oauth.remember') !== 'false';
-    const callbackSession = { access_token: oauthToken, refresh_token: params.get('refresh_token'), expires_at: Number(params.get('expires_at')) || 0 };
-    saveSession(callbackSession, remember);
+    saveSession({ access_token: oauthToken, refresh_token: params.get('refresh_token'), expires_at: Number(params.get('expires_at')) || 0 }, remember);
     sessionStorage.removeItem('savebucks.oauth.remember');
     history.replaceState(null, '', `${location.pathname}${location.search}`);
     if (recoveryLink) isRecovery = true;
@@ -156,7 +178,8 @@ export function mountAuth({ onAuthenticated }) {
   function showRecoveryForm() {
     isRecovery = true;
     isSignup = false;
-    screen.hidden = false; shell.hidden = true;
+    screen.hidden = false;
+    shell.hidden = true;
     heading.textContent = 'Choose a new password';
     passwordInput.autocomplete = 'new-password';
     passwordHint.hidden = false;
@@ -165,8 +188,10 @@ export function mountAuth({ onAuthenticated }) {
     rememberRow.hidden = true;
     forgotButton.hidden = true;
     switchButton.hidden = true;
-    document.querySelector('.google-account-button').hidden = true;
-    document.querySelector('.auth-divider').hidden = true;
+    const googleButton = document.querySelector('.google-account-button');
+    const divider = document.querySelector('.auth-divider');
+    if (googleButton) googleButton.hidden = true;
+    if (divider) divider.hidden = true;
     form.querySelector('.auth-name-field').hidden = true;
     submit.textContent = 'Update password';
   }
@@ -174,9 +199,12 @@ export function mountAuth({ onAuthenticated }) {
   const session = getSession();
   if (isRecovery && session?.access_token) showRecoveryForm();
   else if (session?.access_token && isAuthConfigured()) {
-    screen.hidden = true; shell.hidden = false; completeLogin(session);
+    screen.hidden = true;
+    shell.hidden = false;
+    completeLogin(session);
   } else {
-    screen.hidden = false; shell.hidden = true;
+    screen.hidden = false;
+    shell.hidden = true;
     if (!isAuthConfigured()) document.querySelector('#auth-config-note').hidden = false;
   }
 
@@ -216,11 +244,13 @@ export function mountAuth({ onAuthenticated }) {
     const password = passwordInput.value;
     if (!validPassword(password)) {
       error.textContent = 'Password must be at least 8 characters, include an uppercase letter and a symbol, and contain no spaces.';
-      passwordInput.focus(); return;
+      passwordInput.focus();
+      return;
     }
     if ((isSignup || isRecovery) && password !== confirmInput.value) {
       error.textContent = 'The passwords do not match.';
-      confirmInput.focus(); return;
+      confirmInput.focus();
+      return;
     }
     submit.disabled = true;
     try {
@@ -242,8 +272,11 @@ export function mountAuth({ onAuthenticated }) {
         : await authRequest('token?grant_type=password', payload, remember);
       if (!result.access_token) { error.textContent = 'Account created. Confirm your email, then sign in.'; return; }
       await completeLogin(result);
-    } catch (issue) { error.textContent = issue.message; }
-    finally { submit.disabled = false; }
+    } catch (issue) {
+      error.textContent = issue.message;
+    } finally {
+      submit.disabled = false;
+    }
   });
 
   document.querySelectorAll('[data-oauth]').forEach((button) => button.addEventListener('click', () => {
