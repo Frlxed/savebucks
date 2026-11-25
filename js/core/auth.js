@@ -55,35 +55,7 @@ export async function readCloudData(userId, token) {
   const rows = await response.json();
   return rows[0]?.payload ?? null;
 }
-export async function writeCloudData(userId, token, payload) {
-  const response = await fetch(`${CONFIG.url.replace(/\/$/, '')}/rest/v1/user_data?on_conflict=user_id`, {
-    method: 'POST', headers: { ...headers(token), Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ user_id: userId, payload, updated_at: new Date().toISOString() }),
-  });
-  if (!response.ok) throw new Error('Could not back up your data to Supabase.');
-}
-export async function updateAccount({ email, name }) {
-  const session = getSession();
-  if (!session?.access_token) throw new Error('Please sign in again to update your account.');
-  const response = await fetch(endpoint('user'), { method: 'PUT', headers: headers(session.access_token), body: JSON.stringify({ email, data: { name } }) });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.msg || result.message || 'Could not update your account.');
-  const updated = { ...session, user: result };
-  saveSession(updated, localStorage.getItem(REMEMBER_KEY) !== 'false');
-  return updated;
-}
 
-function setBrandCapitalization() {
-  document.querySelectorAll('.brand').forEach((brand) => {
-    const word = brand.querySelector(':scope > span:last-child');
-    if (word) word.innerHTML = 'Save<span class="brand-light">Bucks</span>';
-  });
-  const mobileBrand = document.querySelector('.mobile-brand');
-  if (mobileBrand) {
-    [...mobileBrand.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).forEach((node) => node.remove());
-    mobileBrand.insertAdjacentHTML('beforeend', ' Save<span class="brand-light">Bucks</span>');
-  }
-}
 function validPassword(password) {
   return password.length >= 8 && /[A-Z]/.test(password) && /[^A-Za-z0-9\s]/.test(password) && !/\s/.test(password);
 }
@@ -100,22 +72,12 @@ export function mountAuth({ onAuthenticated }) {
   const rememberInput = form.elements.remember;
   const passwordInput = form.elements.password;
   const passwordLabel = passwordInput.closest('label');
-  let isSignup = false;
+  // New visitors start in create-account mode, matching the first screen in index.html.
+  let isSignup = true;
   let isRecovery = false;
-
-  rememberRow.hidden = false;
-  rememberInput.checked = localStorage.getItem(REMEMBER_KEY) !== 'false';
-  passwordInput.minLength = 8;
-  passwordInput.pattern = '(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s])\\S{8,}';
-  passwordInput.title = 'Use at least 8 characters, including an uppercase letter and a symbol, with no spaces.';
-  const passwordHint = document.createElement('span');
-  passwordHint.className = 'auth-password-hint';
-  passwordHint.textContent = 'At least 8 characters, one uppercase letter and one symbol; no spaces.';
-  passwordLabel.append(passwordHint);
 
   const confirmLabel = document.createElement('label');
   confirmLabel.className = 'auth-confirm-password';
-  confirmLabel.hidden = true;
   confirmLabel.textContent = 'Confirm password';
   const confirmInput = document.createElement('input');
   confirmInput.type = 'password';
@@ -124,17 +86,42 @@ export function mountAuth({ onAuthenticated }) {
   confirmInput.required = true;
   confirmInput.placeholder = 'Re-enter your password';
   confirmLabel.append(confirmInput);
+  // Insert immediately after password so it is present on the very first page load.
   passwordLabel.after(confirmLabel);
+
+  const passwordHint = document.createElement('span');
+  passwordHint.className = 'auth-password-hint';
+  passwordHint.textContent = 'At least 8 characters, one uppercase letter and one symbol; no spaces.';
+  passwordLabel.append(passwordHint);
+  passwordInput.minLength = 8;
+  passwordInput.pattern = '(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s])\\S{8,}';
+  passwordInput.title = 'Use at least 8 characters, including an uppercase letter and a symbol, with no spaces.';
+
+  rememberRow.hidden = false;
+  rememberInput.checked = localStorage.getItem(REMEMBER_KEY) !== 'false';
+  form.querySelector('.auth-name-field').hidden = false;
+  heading.textContent = 'Create your account';
+  submit.textContent = 'Create account';
+  switchButton.textContent = 'Already have an account? Sign in';
+  passwordInput.autocomplete = 'new-password';
 
   const forgotButton = document.createElement('button');
   forgotButton.type = 'button';
   forgotButton.className = 'auth-forgot';
   forgotButton.textContent = 'Forgot password?';
+  forgotButton.hidden = true;
   confirmLabel.after(forgotButton);
-  const style = document.createElement('style');
-  style.textContent = '.auth-password-hint{display:block;font-size:9px;color:#89929e;line-height:1.45;margin-top:-3px}.auth-forgot{display:block;margin:-3px 0 10px auto;padding:0;border:0;background:none;color:#c4f266;font:inherit;font-size:10px;cursor:pointer}.auth-forgot:hover{text-decoration:underline}.auth-confirm-password{margin-top:8px}';
-  document.head.append(style);
-  setBrandCapitalization();
+  const authStyle = document.createElement('style');
+  authStyle.textContent = '.auth-password-hint{display:block;font-size:9px;color:#89929e;line-height:1.45;margin-top:-3px}.auth-forgot{display:block;margin:-3px 0 10px auto;padding:0;border:0;background:none;color:#c4f266;font:inherit;font-size:10px;cursor:pointer}.auth-forgot:hover{text-decoration:underline}.auth-confirm-password input{display:block;width:100%;margin-top:8px;box-sizing:border-box}';
+  document.head.append(authStyle);
+
+  const setBrand = () => {
+    document.querySelectorAll('.brand').forEach((brand) => {
+      const word = brand.querySelector(':scope > span:last-child');
+      if (word) word.innerHTML = 'Save<span class="brand-light">Bucks</span>';
+    });
+  };
+  setBrand();
 
   const showApp = (session, cloudData) => { screen.hidden = true; shell.hidden = false; onAuthenticated(session, cloudData); };
   async function completeLogin(session) {
@@ -158,7 +145,7 @@ export function mountAuth({ onAuthenticated }) {
   const recoveryLink = params.get('type') === 'recovery';
   const oauthToken = params.get('access_token');
   if (oauthToken) {
-    const remember = recoveryLink ? true : sessionStorage.getItem('savebucks.oauth.remember') !== 'false';
+    const remember = recoveryLink || sessionStorage.getItem('savebucks.oauth.remember') !== 'false';
     const callbackSession = { access_token: oauthToken, refresh_token: params.get('refresh_token'), expires_at: Number(params.get('expires_at')) || 0 };
     saveSession(callbackSession, remember);
     sessionStorage.removeItem('savebucks.oauth.remember');
@@ -172,10 +159,9 @@ export function mountAuth({ onAuthenticated }) {
     screen.hidden = false; shell.hidden = true;
     heading.textContent = 'Choose a new password';
     passwordInput.autocomplete = 'new-password';
-    passwordInput.value = '';
     passwordHint.hidden = false;
     confirmLabel.hidden = false;
-    confirmInput.value = '';
+    confirmInput.required = true;
     rememberRow.hidden = true;
     forgotButton.hidden = true;
     switchButton.hidden = true;
@@ -201,10 +187,11 @@ export function mountAuth({ onAuthenticated }) {
     switchButton.textContent = isSignup ? 'Already have an account? Sign in' : 'New to SaveBucks? Create an account';
     form.querySelector('.auth-name-field').hidden = !isSignup;
     passwordInput.autocomplete = isSignup ? 'new-password' : 'current-password';
-    passwordHint.hidden = !isSignup;
     confirmLabel.hidden = !isSignup;
     confirmInput.required = isSignup;
+    passwordHint.hidden = !isSignup;
     forgotButton.hidden = isSignup;
+    rememberRow.hidden = false;
     error.textContent = '';
   });
 
@@ -214,10 +201,7 @@ export function mountAuth({ onAuthenticated }) {
     if (!email) { error.textContent = 'Enter your email address first, then choose Forgot password?'; form.elements.email.focus(); return; }
     forgotButton.disabled = true;
     try {
-      const response = await fetch(endpoint('recover'), {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ email, redirect_to: `${location.origin}${location.pathname}` }),
-      });
+      const response = await fetch(endpoint('recover'), { method: 'POST', headers: headers(), body: JSON.stringify({ email, redirect_to: `${location.origin}${location.pathname}` }) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.msg || result.message || 'Could not send the password reset email.');
       error.textContent = 'If an account exists for that email, a password reset link has been sent.';
@@ -241,13 +225,12 @@ export function mountAuth({ onAuthenticated }) {
     submit.disabled = true;
     try {
       if (isRecovery) {
-        const session = getSession();
-        const response = await fetch(endpoint('user'), { method: 'PUT', headers: headers(session?.access_token), body: JSON.stringify({ password }) });
+        const activeSession = getSession();
+        const response = await fetch(endpoint('user'), { method: 'PUT', headers: headers(activeSession?.access_token), body: JSON.stringify({ password }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.msg || result.message || 'Could not update your password. Request a new reset link and try again.');
-        error.textContent = 'Password updated. Signing you in…';
         isRecovery = false;
-        await completeLogin({ ...session, user: result });
+        await completeLogin({ ...activeSession, user: result });
         return;
       }
       const values = new FormData(form);
