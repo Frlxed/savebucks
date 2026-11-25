@@ -13,7 +13,7 @@
       <div class="auth-card">
         <a class="brand auth-brand" href="#"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>Save<span class="brand-light">Bucks</span></span></a>
         <span class="eyebrow">A CALMER WAY TO MANAGE MONEY</span>
-        <h1 id="auth-heading">Welcome to SaveBucks</h1>
+        <h1 id="auth-heading">Create your account</h1>
         <p class="auth-description">Sign in or create an account to keep your finances with you.</p>
         <button class="google-account-button" type="button" data-oauth="google">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.35 12.25c0-.74-.07-1.45-.19-2.14H12v4.05h5.24a4.48 4.48 0 0 1-1.94 2.94v2.58h3.14c1.84-1.69 2.91-4.19 2.91-7.43Z"/><path fill="#34A853" d="M12 22c2.62 0 4.82-.87 6.44-2.32l-3.14-2.58c-.87.58-1.98.93-3.3.93-2.54 0-4.69-1.71-5.46-4.02H3.29v2.65A9.99 9.99 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.54 14.01A6.02 6.02 0 0 1 6.22 12c0-.7.12-1.38.32-2.01V7.34H3.29A9.99 9.99 0 0 0 2 12c0 1.61.38 3.14 1.29 4.66l3.25-2.65Z"/><path fill="#EA4335" d="M12 5.97c1.43 0 2.71.49 3.72 1.45l2.79-2.79A9.59 9.59 0 0 0 12 2a9.99 9.99 0 0 0-8.71 5.34l3.25 2.65C7.31 7.68 9.46 5.97 12 5.97Z"/></svg>
@@ -21,14 +21,14 @@
         </button>
         <div class="auth-divider"><span>or continue with email</span></div>
         <form id="auth-form">
-          <label class="auth-name-field" hidden>Your name<input name="name" type="text" autocomplete="name" maxlength="60" placeholder="Name" /></label>
+          <label class="auth-name-field">Your name<input name="name" type="text" autocomplete="name" maxlength="60" placeholder="Name" /></label>
           <label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com" /></label>
-          <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters" /></label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" /></label>
           <label class="remember-row"><input name="remember" type="checkbox" value="yes" checked /> <span>Keep me signed in on this device</span></label>
           <p class="auth-error" id="auth-error" role="alert"></p>
-          <button class="button button-primary auth-submit" type="submit">Sign in</button>
+          <button class="button button-primary auth-submit" type="submit">Create account</button>
         </form>
-        <button class="auth-switch" id="auth-switch" type="button">New to SaveBucks? Create an account</button>
+        <button class="auth-switch" id="auth-switch" type="button">Already have an account? Sign in</button>
         <p class="auth-config-note" id="auth-config-note" hidden>Connect a Supabase project to enable secure accounts. See README.md for setup.</p>
       </div>
     </section>
@@ -55,5 +55,6 @@
     <dialog id="expense-dialog" class="modal"><form id="expense-form" class="modal-form"><div class="modal-heading"><div><span class="eyebrow">NEW TRANSACTION</span><h2>Add an expense</h2></div><button class="icon-button" type="button" data-close-dialog="expense-dialog" aria-label="Close">×</button></div><label>Description<input name="description" type="text" placeholder="e.g. Weekly groceries" maxlength="60" required /></label><div class="form-row"><label>Category<select name="category"><option>Food</option><option>Transport</option><option>Bills</option><option>Shopping</option><option>Health</option><option>Education</option><option>Entertainment</option><option>Other</option></select></label><label>Date<input name="date" type="date" required /></label></div><div class="form-row"><label>Quantity<input name="quantity" type="number" min="0.01" step="0.01" value="1" required /></label><label>Price per item ($)<input name="unitPrice" type="number" min="0.01" step="0.01" placeholder="0.00" required /></label></div><div class="modal-total"><span>Total expense</span><strong id="expense-preview">$0.00</strong></div><button class="button button-primary modal-submit" type="submit">Save expense <span>↗</span></button></form></dialog>
     <dialog id="income-dialog" class="modal modal-small"><form id="income-form" class="modal-form"><div class="modal-heading"><div><span class="eyebrow">MONTHLY INCOME</span><h2>Set your income</h2></div><button class="icon-button" type="button" data-close-dialog="income-dialog" aria-label="Close">×</button></div><p class="modal-copy">Add your salary, allowance, or any other income for this month.</p><label>Monthly income ($)<input name="income" type="number" min="0" step="0.01" placeholder="0.00" required /></label><button class="button button-primary modal-submit" type="submit">Save income <span>↗</span></button></form></dialog>
     <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/features/auth-startup.js"></script>
   </body>
 </html>
