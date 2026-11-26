@@ -1,25 +1,38 @@
-// Inline forgot-password flow. The email link redirects to the published app;
-// auth.js detects Supabase's recovery token and displays the new-password form.
+// Keep password recovery within the published app. Supabase redirects to this URL
+// with a recovery token; auth.js then displays the choose-new-password form.
 const APP_URL = 'https://frlxed.github.io/savebucks/';
-const recoveryRedirect = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
-const STYLE = '.auth-reset-note{margin:0 0 14px;color:#aab4bf;font-size:12px;line-height:1.5}.auth-reset-back{display:block;margin:10px auto 0;padding:4px 8px;border:0;background:none;color:#c4f266;font:inherit;font-size:11px;cursor:pointer}.auth-reset-back:hover{text-decoration:underline}';
 const style = document.createElement('style');
-style.textContent = STYLE;
+style.textContent = '.auth-reset-note{margin:0 0 14px;color:#aab4bf;font-size:12px;line-height:1.5}.auth-reset-back{display:block;margin:10px auto 0;padding:4px 8px;border:0;background:none;color:#c4f266;font:inherit;font-size:11px;cursor:pointer}.auth-reset-back:hover{text-decoration:underline}';
 document.head.append(style);
 
-// The module is imported after the auth markup has been parsed.
-if (recoveryRedirect) {
+// The requested explanatory sentence is removed from all auth states.
+function hideAuthDescription() {
   const description = document.querySelector('.auth-description');
   if (description) description.hidden = true;
 }
+hideAuthDescription();
+
+// Recovery markup is prepared in auth.js after module initialization. Observe
+// those updates so recovery never briefly shows normal login/signup controls.
+function applyRecoveryPresentation() {
+  hideAuthDescription();
+  const heading = document.querySelector('#auth-heading');
+  if (!heading || !/reset your password|choose a new password/i.test(heading.textContent || '')) return;
+  const remember = document.querySelector('.remember-row');
+  const forgot = document.querySelector('.auth-forgot');
+  if (remember) remember.hidden = true;
+  if (forgot) forgot.hidden = true;
+}
+const recoveryObserver = new MutationObserver(applyRecoveryPresentation);
+recoveryObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+applyRecoveryPresentation();
 
 let resetView = null;
 
 document.addEventListener('click', (event) => {
   const forgot = event.target.closest('.auth-forgot');
   if (!forgot) return;
-  // Capture before the auth module's target-level click handler can send a
-  // duplicate request or bypass the inline reset screen.
+  // Capture before the auth module's click handler can send a duplicate request.
   event.preventDefault();
   event.stopImmediatePropagation();
   const form = document.querySelector('#auth-form');
@@ -32,7 +45,6 @@ document.addEventListener('click', (event) => {
   const nameLabel = form.querySelector('.auth-name-field');
   const remember = form.querySelector('.remember-row');
   const hint = form.querySelector('.auth-password-hint');
-  const description = document.querySelector('.auth-description');
   const google = document.querySelector('.google-account-button, [data-oauth="google"]');
   const divider = document.querySelector('.auth-divider');
   const switchButton = document.querySelector('#auth-switch');
@@ -49,7 +61,6 @@ document.addEventListener('click', (event) => {
   if (nameLabel) nameLabel.hidden = true;
   if (remember) remember.hidden = true;
   if (hint) hint.hidden = true;
-  if (description) description.hidden = true;
   if (google) google.hidden = true;
   if (divider) divider.hidden = true;
   if (switchButton) switchButton.hidden = true;
@@ -63,7 +74,7 @@ document.addEventListener('click', (event) => {
   back.textContent = 'Back to sign in';
   submit.after(back);
 
-  resetView = { heading, submit, email, passwordLabel, confirmLabel, nameLabel, remember, hint, description, google, divider, switchButton, forgot, error, note, back, form };
+  resetView = { heading, submit, email, passwordLabel, nameLabel, remember, google, divider, switchButton, error, note, back, form };
   back.addEventListener('click', leaveResetView);
   email.focus();
 }, true);
@@ -78,11 +89,9 @@ function leaveResetView() {
   view.form.elements.password.required = true;
   if (view.nameLabel) view.nameLabel.hidden = true;
   if (view.remember) view.remember.hidden = false;
-  if (view.description) view.description.hidden = false;
   if (view.google) view.google.hidden = false;
   if (view.divider) view.divider.hidden = false;
   if (view.switchButton) view.switchButton.hidden = false;
-  if (view.forgot) view.forgot.hidden = false;
   view.error.textContent = '';
   view.note.remove();
   view.back.remove();
