@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs><linearGradient id="bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#1d2819"/><stop offset="1" stop-color="#0c1110"/></linearGradient><linearGradient id="coin" x1="16" y1="14" x2="49" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#e1ff9b"/><stop offset="1" stop-color="#a9df4c"/></linearGradient></defs>
-  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#bg)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" stroke="#c4f266" stroke-opacity=".32" stroke-width="1.5"/>
-  <circle cx="32" cy="32" r="18" fill="none" stroke="url(#coin)" stroke-width="3.5"/><path d="M39 24.5c-1.6-1.6-4-2.5-6.9-2.5-5.8 0-9.6 4-9.6 10s3.8 10 9.6 10c3 0 5.4-1 7-2.7M25.5 31h12" fill="none" stroke="url(#coin)" stroke-linecap="round" stroke-width="3"/><circle cx="46.5" cy="17.5" r="3" fill="#e1ff9b"/>
+  <rect width="64" height="64" rx="13" fill="#11151a"/>
+  <rect x="12" y="12" width="40" height="40" rx="12" fill="#101b17" stroke="#66724a" stroke-width="1.5"/>
+  <g fill="#d0ff55">
+    <rect x="21" y="31" width="6" height="13" rx="3"/>
+    <rect x="29" y="22" width="6" height="22" rx="3"/>
+    <rect x="37" y="29" width="6" height="15" rx="3"/>
+  </g>
 </svg>
