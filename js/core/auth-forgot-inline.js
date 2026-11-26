@@ -1,22 +1,29 @@
-// Inline forgot-password flow. The email link carries the one-time recovery token;
-// auth.js recognizes it and presents the secure new-password form on this same page.
+// Inline forgot-password flow. The email link redirects to the published app;
+// auth.js detects Supabase's recovery token and displays the new-password form.
+const APP_URL = 'https://frlxed.github.io/savebucks/';
+const recoveryRedirect = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
 const STYLE = '.auth-reset-note{margin:0 0 14px;color:#aab4bf;font-size:12px;line-height:1.5}.auth-reset-back{display:block;margin:10px auto 0;padding:4px 8px;border:0;background:none;color:#c4f266;font:inherit;font-size:11px;cursor:pointer}.auth-reset-back:hover{text-decoration:underline}';
 const style = document.createElement('style');
 style.textContent = STYLE;
 document.head.append(style);
+
+// The module is imported after the auth markup has been parsed.
+if (recoveryRedirect) {
+  const description = document.querySelector('.auth-description');
+  if (description) description.hidden = true;
+}
 
 let resetView = null;
 
 document.addEventListener('click', (event) => {
   const forgot = event.target.closest('.auth-forgot');
   if (!forgot) return;
-  // Prevent the auth module's direct click handler from sending the request
-  // before the inline reset view has collected/validated the email.
+  // Capture before the auth module's target-level click handler can send a
+  // duplicate request or bypass the inline reset screen.
   event.preventDefault();
   event.stopImmediatePropagation();
   const form = document.querySelector('#auth-form');
   if (!form || resetView) return;
-  const screen = document.querySelector('#auth-screen');
   const heading = document.querySelector('#auth-heading');
   const submit = form.querySelector('[type="submit"]');
   const email = form.elements.email;
@@ -25,6 +32,7 @@ document.addEventListener('click', (event) => {
   const nameLabel = form.querySelector('.auth-name-field');
   const remember = form.querySelector('.remember-row');
   const hint = form.querySelector('.auth-password-hint');
+  const description = document.querySelector('.auth-description');
   const google = document.querySelector('.google-account-button, [data-oauth="google"]');
   const divider = document.querySelector('.auth-divider');
   const switchButton = document.querySelector('#auth-switch');
@@ -32,7 +40,7 @@ document.addEventListener('click', (event) => {
 
   const note = document.createElement('p');
   note.className = 'auth-reset-note';
-  note.textContent = 'Enter your account email and we’ll send you a secure password-reset link. You can set your new password on this page after opening the link.';
+  note.textContent = 'Enter your account email and we’ll send you a secure password-reset link. Open the link in your email to choose a new password.';
   heading.textContent = 'Reset your password';
   submit.textContent = 'Send reset link';
   error.textContent = '';
@@ -41,9 +49,11 @@ document.addEventListener('click', (event) => {
   if (nameLabel) nameLabel.hidden = true;
   if (remember) remember.hidden = true;
   if (hint) hint.hidden = true;
+  if (description) description.hidden = true;
   if (google) google.hidden = true;
   if (divider) divider.hidden = true;
   if (switchButton) switchButton.hidden = true;
+  forgot.hidden = true;
   passwordLabel.before(note);
   form.elements.password.required = false;
   form.elements.password.disabled = true;
@@ -53,10 +63,10 @@ document.addEventListener('click', (event) => {
   back.textContent = 'Back to sign in';
   submit.after(back);
 
-  resetView = { screen, heading, submit, email, passwordLabel, confirmLabel, nameLabel, remember, hint, google, divider, switchButton, error, note, back, form };
+  resetView = { heading, submit, email, passwordLabel, confirmLabel, nameLabel, remember, hint, description, google, divider, switchButton, forgot, error, note, back, form };
   back.addEventListener('click', leaveResetView);
   email.focus();
-});
+}, true);
 
 function leaveResetView() {
   if (!resetView) return;
@@ -68,9 +78,11 @@ function leaveResetView() {
   view.form.elements.password.required = true;
   if (view.nameLabel) view.nameLabel.hidden = true;
   if (view.remember) view.remember.hidden = false;
+  if (view.description) view.description.hidden = false;
   if (view.google) view.google.hidden = false;
   if (view.divider) view.divider.hidden = false;
   if (view.switchButton) view.switchButton.hidden = false;
+  if (view.forgot) view.forgot.hidden = false;
   view.error.textContent = '';
   view.note.remove();
   view.back.remove();
@@ -91,11 +103,11 @@ document.addEventListener('submit', async (event) => {
     const response = await fetch('https://ahxlclpxwkxdnoarlqsx.supabase.co/auth/v1/recover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_oCJKCAirpKoT20V7K7CdYg_ZAQPsQ5L' },
-      body: JSON.stringify({ email: address, redirect_to: `${location.origin}${location.pathname}` }),
+      body: JSON.stringify({ email: address, redirect_to: APP_URL }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.msg || result.message || 'Could not send the reset email. Please try again.');
-    error.textContent = 'If an account exists for that email, a reset link has been sent. Open it to choose a new password here.';
+    error.textContent = 'If an account exists for that email, a reset link has been sent. Open it to choose a new password.';
     submit.textContent = 'Reset link sent';
   } catch (issue) {
     error.textContent = issue.message;
@@ -104,6 +116,3 @@ document.addEventListener('submit', async (event) => {
     submit.disabled = false;
   }
 }, true);
-
-// Keep the helper referenced for the reset screen's Back button listener.
-void leaveResetView;
