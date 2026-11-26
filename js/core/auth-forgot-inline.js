@@ -9,7 +9,7 @@ const APP_URL = 'https://frlxed.github.io/savebucks/';
 document.querySelector('.auth-description')?.remove();
 
 const style = document.createElement('style');
-style.textContent = '.auth-reset-note{margin:0 0 14px;color:#aab4bf;font-size:12px;line-height:1.5}.auth-reset-back{display:block;margin:10px auto 0;padding:4px 8px;border:0;background:none;color:#c4f266;font:inherit;font-size:11px;cursor:pointer}.auth-reset-back:hover{text-decoration:underline}';
+style.textContent = '.auth-reset-note{margin:0 0 14px;color:#aab4bf;font-size:12px;line-height:1.5}.auth-reset-back{display:block;margin:10px auto 0;padding:4px 8px;border:0;background:none;color:#c4f266;font:inherit;font-size:11px;cursor:pointer}.auth-reset-back:hover{text-decoration:underline}#auth-screen .remember-row[hidden]{display:none!important}';
 document.head.append(style);
 
 let resetView = null;
