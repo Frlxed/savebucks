@@ -120,10 +120,14 @@ document.addEventListener('submit', async (event) => {
   submit.disabled = true;
   submit.textContent = 'Sending…';
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+    // Supabase Auth expects redirect_to as a query parameter for /recover;
+    // sending it in the JSON body is ignored and falls back to the Site URL.
+    const recoverUrl = new URL(`${SUPABASE_URL}/auth/v1/recover`);
+    recoverUrl.searchParams.set('redirect_to', APP_URL);
+    const response = await fetch(recoverUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({ email: address, redirect_to: APP_URL }),
+      body: JSON.stringify({ email: address }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.msg || result.message || result.error_description || 'Could not send the reset email. Please try again.');
