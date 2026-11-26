@@ -1,3 +1,5 @@
+import './auth-forgot-inline.js';
+
 const CONFIG = { url: 'https://ahxlclpxwkxdnoarlqsx.supabase.co', anonKey: 'sb_publishable_oCJKCAirpKoT20V7K7CdYg_ZAQPsQ5L' };
 export const isAuthConfigured = () => Boolean(CONFIG.url && CONFIG.anonKey);
 const endpoint = (path) => `${CONFIG.url.replace(/\/$/, '')}/auth/v1/${path}`;
@@ -109,7 +111,6 @@ export function mountAuth({ onAuthenticated }) {
   confirmLabel.append(confirmInput);
   passwordLabel.after(confirmLabel);
 
-  // Add accessible show/hide controls to both password fields.
   const eyeClosed = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5 0 9 4.5 10 7a11.8 11.8 0 01-3 4.3M6.2 6.3C3.9 7.8 2.4 10 2 12c1 2.5 5 7 10 7 1.2 0 2.3-.2 3.3-.7"/></svg>';
   const eyeOpen = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   function addPasswordToggle(input) {
