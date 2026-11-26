@@ -285,8 +285,37 @@ export function mountAuth({ onAuthenticated }) {
         const response = await fetch(endpoint('user'), { method: 'PUT', headers: headers(activeSession?.access_token), body: JSON.stringify({ password }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.msg || result.message || 'Could not update your password. Request a new reset link and try again.');
+
+        // Password was changed successfully. Discard the temporary recovery
+        // session and return to normal sign-in so the user enters the new password.
+        const recoveredEmail = result.email || activeSession?.user?.email || form.elements.email.value || '';
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
         isRecovery = false;
-        await completeLogin({ ...activeSession, user: result });
+        isSignup = false;
+        screen.hidden = false;
+        shell.hidden = true;
+        heading.textContent = 'Welcome to SaveBucks';
+        submit.textContent = 'Sign in';
+        passwordInput.value = '';
+        passwordInput.autocomplete = 'current-password';
+        passwordLabel.hidden = false;
+        confirmLabel.hidden = true;
+        confirmInput.required = false;
+        confirmInput.value = '';
+        passwordHint.hidden = true;
+        rememberRow.hidden = false;
+        forgotButton.hidden = false;
+        switchButton.hidden = false;
+        switchButton.textContent = 'New to SaveBucks? Create an account';
+        const googleButton = document.querySelector('.google-account-button');
+        const divider = document.querySelector('.auth-divider');
+        if (googleButton) googleButton.hidden = false;
+        if (divider) divider.hidden = false;
+        form.querySelector('.auth-name-field').hidden = true;
+        if (recoveredEmail) form.elements.email.value = recoveredEmail;
+        error.textContent = 'Password updated. Sign in with your new password.';
+        form.elements.email.focus();
         return;
       }
       const values = new FormData(form);
